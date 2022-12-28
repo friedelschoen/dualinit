@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 
-void mount_chroot(const char* root, const mount_t* mnt) {
+static void mount_chroot(const char* root, const mount_t* mnt) {
 	static char dest[100];
 	strcpy(dest, root);
 	strcat(dest, mnt->target);

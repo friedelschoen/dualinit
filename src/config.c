@@ -52,15 +52,13 @@
 	}
 
 
-section_t  sections[SECTION_MAX];
-mount_t	   mounts[SECTION_MOUNT_MAX];
-int		   section_size = 0;
-int		   mount_size	= 0;
-section_t* master		= NULL;
-section_t* default_s	= NULL;
-bool	   color		= false;
-bool	   verbose		= true;
-int		   timeout		= 10;
+section_t sections[SECTION_MAX];
+mount_t	  mounts[SECTION_MOUNT_MAX];
+int		  section_size = 0;
+int		  mount_size   = 0;
+bool	  color		   = false;
+bool	  verbose	   = true;
+int		  timeout	   = 10;
 
 
 parse_error_t config_parse(int fd, const char* filename) {
@@ -183,11 +181,6 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			current_section->mount_size = 0;
 			current_section->name		= strdupn(columns[1]);
 			current_section->root		= strdupn(columns[2]);
-
-			if (master == NULL)
-				master = current_section;
-			if (default_s == NULL)
-				default_s = current_section;
 		} else if (streq(columns[0], "rshare") || streq(columns[0], "share")) {
 			CHECK_PARAMS_MORE(2);
 
@@ -196,10 +189,14 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 								 ? &current_section->mounts[current_section->mount_size++]
 								 : &mounts[mount_size++];
 
-				mnt->try	 = false;
+				char* target = columns[i];
+
+				mnt->try = target[0] == '*';
+				if (mnt->try)
+					target++;
+				mnt->source	 = strdupn(target);
+				mnt->target	 = strdupn(target);
 				mnt->type	 = NULL;
-				mnt->source	 = strdupn(columns[i]);
-				mnt->target	 = strdupn(columns[i]);
 				mnt->options = NULL;
 				mnt->flags	 = MS_BIND;
 				if (columns[0][0] == 'r')	 // aka. equals rshare
@@ -215,16 +212,6 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			CHECK_PARAMS_EQUALS(2);
 
 			PARSE_BOOL(verbose);
-		} else if (streq(columns[0], "master")) {
-			CHECK_SECTION;
-			CHECK_PARAMS_EQUALS(1);
-
-			master = current_section;
-		} else if (streq(columns[0], "default")) {
-			CHECK_SECTION;
-			CHECK_PARAMS_EQUALS(1);
-
-			default_s = current_section;
 		} else if (streq(columns[0], "timeout")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
@@ -337,8 +324,6 @@ void config_reset() {
 
 	section_size = 0;
 	mount_size	 = 0;
-	master		 = NULL;
-	default_s	 = NULL;
 	color		 = false;
 	verbose		 = true;
 	timeout		 = 10;
