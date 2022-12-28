@@ -1,10 +1,18 @@
 #pragma once
 
+#define VERBOSE(format...)                       \
+	{                                            \
+		if (color) {                             \
+			printf("\e[33mdebug:\e[0m " format); \
+		} else                                   \
+			printf("debug: " format);            \
+	}
+
 #define INFO(format...)                      \
 	{                                        \
-		if (verbose && color) {              \
+		if (color) {                         \
 			printf("\e[36m::\e[0m " format); \
-		} else if (verbose)                  \
+		} else                               \
 			printf(":: " format);            \
 	}
 
@@ -16,13 +24,13 @@
 			printf("error: " format);             \
 	}
 
-#ifdef IS_CLI
-#	define DIE exit(1)
-#else
-#	define DIE   \
-		while (1) \
-			;
-#endif
+#define DIE              \
+	if (getpid() == 1) { \
+		while (1)        \
+			;            \
+	} else {             \
+		exit(1);         \
+	}
 
 #define PANIC(format...)                           \
 	{                                              \
