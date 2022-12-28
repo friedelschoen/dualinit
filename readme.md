@@ -1,22 +1,23 @@
+# DUALINIT
+
+> Work in progress
+
 ## Directory Structure
 
 ### Minimal Directure Hierachie
 
 ```
 /
-├── boot/
+├── boot/ (symlinked to /<master>/boot)
 │  ├── ...
 │  ├── initramfs-x.x.img
 │  └── vmlinuz-x.x
-├── dev/
+├── dev/ (pseudo-fs)
 ├── etc/
 │  └── dualinit.conf
-├── proc/
+├── proc/ (pseudo-fs)
 ├── sbin/
 │  └── init
-├── sys/
+├── sys/ (pseudo-fs)
 └── <environments>/
 ```
-
-By default `/boot` will be binded (mounted) to &lg;new_root&gg;/boot and 
-`/sbin/init` to &lg;new_root&gg;/sbin/dualboot linked
