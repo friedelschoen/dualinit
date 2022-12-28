@@ -47,7 +47,7 @@ int main() {
 		PANIC("cannot open %s: %s\n", DEFAULT_CONFIG, strerror(errno));
 	}
 
-	parse_error_t parse_code = parse_config(choice_file, DEFAULT_CONFIG);
+	parse_error_t parse_code = config_parse(choice_file, DEFAULT_CONFIG);
 	if (parse_code != 0) {
 		PANIC("invalid config");
 	}
@@ -87,27 +87,11 @@ int main() {
 
 		for (int i = 0; i < mount_size; i++) {
 			mount_chroot(section->root, &mounts[i]);
-			free_mount(&mounts[i]);
-		}
-
-		if (mount_default) {
-			for (const mount_t* mnt = DEFAULT_MOUNTS; mnt->target != NULL; mnt++) {
-				mount_chroot(section->root, mnt);
-			}
-		}
-
-		if (mount_master) {
-			for (const char** mnt = DEFAULT_MASTER_MOUNTS; *mnt; mnt++) {
-				self_mount.source = *mnt;
-				self_mount.target = *mnt;
-				mount_chroot(section->root, &self_mount);
-			}
 		}
 	}
 
 	for (int i = 0; i < section->mount_size; i++) {
 		mount_chroot(section->root, &section->mounts[i]);
-		free_mount(&mounts[i]);
 	}
 
 	if (!is_root) {
@@ -126,12 +110,11 @@ int main() {
 	if (section->init != NULL)
 		strcpy(init, section->init);
 
-	for (int i = 0; i < section_index; i++)
-		free_section(&section[i]);
+	config_cleanup();
 
 	INFO("entering %s\n\n", init);
 
-	if (execlp(section->init, section->init, NULL) == -1) {
-		PANIC("error: cannot execute %s: %s\n", section->init, strerror(errno));
-	}
+	execlp(section->init, section->init, NULL);
+
+	PANIC("error: cannot execute %s: %s\n", section->init, strerror(errno));
 }

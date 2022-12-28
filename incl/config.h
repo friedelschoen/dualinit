@@ -43,8 +43,6 @@ extern bool		  color;
 extern bool		  verbose;
 extern mount_t	  mounts[];
 extern int		  mount_size;
-extern bool		  mount_default;
-extern bool		  mount_master;
 extern int		  timeout;
 
 parse_error_t config_parsef(FILE* file, const char* filename);

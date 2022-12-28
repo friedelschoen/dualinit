@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/fcntl.h>
+#include <sys/mount.h>
 #include <unistd.h>
 
 #define CHECK_SECTION              \
@@ -53,15 +54,13 @@
 
 section_t  sections[SECTION_MAX];
 mount_t	   mounts[SECTION_MOUNT_MAX];
-int		   section_size	 = 0;
-int		   mount_size	 = 0;
-section_t* master		 = NULL;
-section_t* default_s	 = NULL;
-bool	   color		 = false;
-bool	   verbose		 = true;
-bool	   mount_default = true;
-bool	   mount_master	 = true;
-int		   timeout		 = 10;
+int		   section_size = 0;
+int		   mount_size	= 0;
+section_t* master		= NULL;
+section_t* default_s	= NULL;
+bool	   color		= false;
+bool	   verbose		= true;
+int		   timeout		= 10;
 
 
 parse_error_t config_parse(int fd, const char* filename) {
@@ -199,16 +198,6 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			CHECK_PARAMS_EQUALS(2);
 
 			PARSE_BOOL(verbose);
-		} else if (streq(columns[0], "mount-default")) {
-			CHECK_ROOT;
-			CHECK_PARAMS_EQUALS(2);
-
-			PARSE_BOOL(mount_default);
-		} else if (streq(columns[0], "mount-master")) {
-			CHECK_ROOT;
-			CHECK_PARAMS_EQUALS(2);
-
-			PARSE_BOOL(mount_master);
 		} else if (streq(columns[0], "master")) {
 			CHECK_SECTION;
 			CHECK_PARAMS_EQUALS(1);
@@ -329,15 +318,13 @@ void config_cleanup() {
 void config_reset() {
 	config_cleanup();
 
-	section_size  = 0;
-	mount_size	  = 0;
-	master		  = NULL;
-	default_s	  = NULL;
-	color		  = false;
-	verbose		  = true;
-	mount_default = true;
-	mount_master  = true;
-	timeout		  = 10;
+	section_size = 0;
+	mount_size	 = 0;
+	master		 = NULL;
+	default_s	 = NULL;
+	color		 = false;
+	verbose		 = true;
+	timeout		 = 10;
 }
 
 
