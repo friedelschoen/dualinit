@@ -25,13 +25,13 @@ typedef struct section {
 } section_t;
 
 typedef enum parse_error {
-	P_ALLOC,	  // cannot allocate line
-	P_COMMAND,	  // invalid command
-	P_USAGE,	  // invalid usage of command
-	P_SCOPE,	  // invalid scope
-	P_DATA,		  // parameter has invalid type
-	P_SECTION,	  // no section defined
-	P_REDEF,	  // init, master, default called more than once
+	P_ALLOC,		 // cannot allocate line
+	P_IDENTIFIER,	 // invalid command
+	P_USAGE,		 // invalid usage of command
+	P_SCOPE,		 // invalid scope
+	P_DATA,			 // parameter has invalid type
+	P_SECTION,		 // no section defined
+	P_REDEF,		 // init, master, default called more than once
 } parse_error_t;
 
 
@@ -47,7 +47,7 @@ extern bool		  mount_default;
 extern bool		  mount_master;
 extern int		  timeout;
 
-parse_error_t parse_config_f(FILE* file, const char* filename);
-parse_error_t parse_config(int fd, const char* filename);
-void		  free_mount(mount_t* mnt);
-void		  free_section(section_t* mnt);
+parse_error_t config_parsef(FILE* file, const char* filename);
+parse_error_t config_parse(int fd, const char* filename);
+void		  config_cleanup();
+void		  config_reset();

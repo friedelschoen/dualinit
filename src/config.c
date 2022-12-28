@@ -40,6 +40,17 @@
 		goto error;           \
 	}
 
+#define PARSE_BOOL(dest)                   \
+	if (streq(columns[1], "true"))         \
+		dest = true;                       \
+	else if (streq(columns[1], "false")) { \
+		dest = false;                      \
+	} else {                               \
+		result = P_DATA;                   \
+		goto error;                        \
+	}
+
+
 section_t  sections[SECTION_MAX];
 mount_t	   mounts[SECTION_MOUNT_MAX];
 int		   section_size	 = 0;
@@ -52,12 +63,13 @@ bool	   mount_default = true;
 bool	   mount_master	 = true;
 int		   timeout		 = 10;
 
-parse_error_t parse_config(int fd, const char* filename) {
+
+parse_error_t config_parse(int fd, const char* filename) {
 	FILE* file = fdopen(fd, "r");
-	return parse_config_f(file, filename);
+	return config_parsef(file, filename);
 }
 
-parse_error_t parse_config_f(FILE* file, const char* filename) {
+parse_error_t config_parsef(FILE* file, const char* filename) {
 	section_t*	  current_section = NULL;
 	bool		  in_mount		  = false;
 	int			  linenr		  = 0;
@@ -145,9 +157,9 @@ parse_error_t parse_config_f(FILE* file, const char* filename) {
 							 : &mounts[mount_size++];
 
 			mnt->try	= columns[0][0] == '*';
-			mnt->type	= STRDUPN(mnt->try ? columns[0] + 1 : columns[0]);
-			mnt->source = STRDUPN(columns[1]);
-			mnt->target = STRDUPN(columns[2]);
+			mnt->type	= strdupn(mnt->try ? columns[0] + 1 : columns[0]);
+			mnt->source = strdupn(columns[1]);
+			mnt->target = strdupn(columns[2]);
 			if (columns_size == 4) {
 				mnt->flags = mount_flags(columns[3], &mnt->options);
 			} else {
@@ -170,8 +182,8 @@ parse_error_t parse_config_f(FILE* file, const char* filename) {
 			current_section				= &sections[section_size++];
 			current_section->init		= NULL;
 			current_section->mount_size = 0;
-			current_section->name		= STRDUPN(columns[1]);
-			current_section->root		= STRDUPN(columns[2]);
+			current_section->name		= strdupn(columns[1]);
+			current_section->root		= strdupn(columns[2]);
 
 			if (master == NULL)
 				master = current_section;
@@ -181,50 +193,22 @@ parse_error_t parse_config_f(FILE* file, const char* filename) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
-			if (streq(columns[1], "true"))
-				color = true;
-			else if (streq(columns[1], "false")) {
-				color = false;
-			} else {
-				result = P_DATA;
-				goto error;
-			}
+			PARSE_BOOL(color);
 		} else if (streq(columns[0], "verbose")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
-			if (streq(columns[1], "true"))
-				verbose = true;
-			else if (streq(columns[1], "false")) {
-				verbose = false;
-			} else {
-				result = P_DATA;
-				goto error;
-			}
+			PARSE_BOOL(verbose);
 		} else if (streq(columns[0], "mount-default")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
-			if (streq(columns[1], "true"))
-				mount_default = true;
-			else if (streq(columns[1], "false")) {
-				mount_default = false;
-			} else {
-				result = P_DATA;
-				goto error;
-			}
+			PARSE_BOOL(mount_default);
 		} else if (streq(columns[0], "mount-master")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
-			if (streq(columns[1], "true"))
-				mount_master = true;
-			else if (streq(columns[1], "false")) {
-				mount_master = false;
-			} else {
-				result = P_DATA;
-				goto error;
-			}
+			PARSE_BOOL(mount_master);
 		} else if (streq(columns[0], "master")) {
 			CHECK_SECTION;
 			CHECK_PARAMS_EQUALS(1);
@@ -254,18 +238,18 @@ parse_error_t parse_config_f(FILE* file, const char* filename) {
 				goto error;
 			}
 
-			current_section->init = STRDUPN(columns[1]);
+			current_section->init = strdupn(columns[1]);
 		} else if (streq(columns[0], "include")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
 			int fd = open(columns[1], O_RDONLY | O_NONBLOCK);
-			result = parse_config(fd, columns[1]);
+			result = config_parse(fd, columns[1]);
 			close(fd);
 			if (result != 0)
 				goto cleanup;
 		} else {
-			result = P_COMMAND;
+			result = P_IDENTIFIER;
 			goto error;
 		}
 	}
@@ -288,8 +272,8 @@ error:
 		case P_SECTION:
 			printf("no section defined\n");
 			break;
-		case P_COMMAND:
-			printf("unknown command '%s'\n", columns[0]);
+		case P_IDENTIFIER:
+			printf("unknown identifier '%s'\n", columns[0]);
 			break;
 		case P_USAGE:
 			printf("invalid usage of command '%s'\n", columns[0]);
@@ -304,6 +288,7 @@ error:
 			printf("redefinition of '%s'\n", columns[0]);
 			break;
 	}
+	config_cleanup();
 
 cleanup:
 	if (line_origin != NULL)
@@ -312,24 +297,47 @@ cleanup:
 	return result;
 }
 
-void free_mount(mount_t* mnt) {
-	if (mnt->type != NULL)
-		free((void*) mnt->type);
-	if (mnt->source != NULL)
-		free((void*) mnt->source);
-	if (mnt->target != NULL)
-		free((void*) mnt->target);
-	if (mnt->options != NULL)
-		free((void*) mnt->options);
+void config_free_mount(mount_t* mount, int size) {
+	for (int i = 0; i < size; i++) {
+		if (mount[i].type != NULL)
+			free((void*) mount[i].type);
+		if (mount[i].source != NULL)
+			free((void*) mount[i].source);
+		if (mount[i].target != NULL)
+			free((void*) mount[i].target);
+		if (mount[i].options != NULL)
+			free((void*) mount[i].options);
+	}
 }
 
-void free_section(section_t* mnt) {
-	if (mnt->name != NULL)
-		free((void*) mnt->name);
-	if (mnt->root != NULL)
-		free((void*) mnt->root);
-	if (mnt->init != NULL)
-		free((void*) mnt->init);
+void config_cleanup() {
+	config_free_mount(mounts, mount_size);
+	mount_size = 0;
+
+	for (int i = 0; i < section_size; i++) {
+		if (sections[i].name != NULL)
+			free((void*) sections[i].name);
+		if (sections[i].root != NULL)
+			free((void*) sections[i].root);
+		if (sections[i].init != NULL)
+			free((void*) sections[i].init);
+		config_free_mount(sections[i].mounts, sections[i].mount_size);
+	}
+	section_size = 0;
+}
+
+void config_reset() {
+	config_cleanup();
+
+	section_size  = 0;
+	mount_size	  = 0;
+	master		  = NULL;
+	default_s	  = NULL;
+	color		  = false;
+	verbose		  = true;
+	mount_default = true;
+	mount_master  = true;
+	timeout		  = 10;
 }
 
 
