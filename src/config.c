@@ -188,6 +188,23 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 				master = current_section;
 			if (default_s == NULL)
 				default_s = current_section;
+		} else if (streq(columns[0], "rshare") || streq(columns[0], "share")) {
+			CHECK_PARAMS_MORE(2);
+
+			for (int i = 1; i < columns_size; i++) {
+				mount_t* mnt = (current_section != NULL)
+								 ? &current_section->mounts[current_section->mount_size++]
+								 : &mounts[mount_size++];
+
+				mnt->try	 = false;
+				mnt->type	 = NULL;
+				mnt->source	 = strdupn(columns[i]);
+				mnt->target	 = strdupn(columns[i]);
+				mnt->options = NULL;
+				mnt->flags	 = MS_BIND;
+				if (columns[0][0] == 'r')	 // aka. equals rshare
+					mnt->flags |= MS_REC;
+			}
 		} else if (streq(columns[0], "color")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
