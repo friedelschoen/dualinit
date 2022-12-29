@@ -35,13 +35,40 @@ typedef enum parse_error {
 } parse_error_t;
 
 
+/**
+ * defined sections
+ */
 extern section_t sections[];
-extern int		 section_size;
-extern bool		 color;
-extern bool		 verbose;
-extern mount_t	 mounts[];
-extern int		 mount_size;
-extern int		 timeout;
+
+/**
+ * size of defined sections
+ */
+extern int section_size;
+
+/**
+ * if colored output is wished
+ */
+extern bool color;
+
+/**
+ * if debug messages should be printed
+ */
+extern bool verbose;
+
+/**
+ * defined global mounts
+ */
+extern mount_t mounts[];
+
+/**
+ * size of defined global mounts
+ */
+extern int mount_size;
+
+/**
+ * menu timeout (TODO)
+ */
+extern int timeout;
 
 parse_error_t config_parsef(FILE* file, const char* filename);
 parse_error_t config_parse(int fd, const char* filename);

@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+/**
+ * prints debug info
+ */
 #define VERBOSE(format...)                       \
 	{                                            \
 		if (color) {                             \
@@ -10,6 +13,9 @@
 			printf("debug: " format);            \
 	}
 
+/**
+ * prints regular info
+ */
 #define INFO(format...)                      \
 	{                                        \
 		if (color) {                         \
@@ -18,6 +24,9 @@
 			printf(":: " format);            \
 	}
 
+/**
+ * prints a warning
+ */
 #define WARN(format...)                           \
 	{                                             \
 		if (color)                                \
@@ -26,6 +35,9 @@
 			printf("warn: " format);              \
 	}
 
+/**
+ * prints an error and dies
+ */
 #define PANIC(format...)                           \
 	{                                              \
 		if (color)                                 \
@@ -35,5 +47,7 @@
 		die();                                     \
 	}
 
-
+/**
+ * initiate the console (for pid == 1)
+ */
 void init_console();

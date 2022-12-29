@@ -12,7 +12,7 @@
 #include <sys/mount.h>
 #include <unistd.h>
 
-
+// mounts `mnt` relative to `root`
 static void mount_chroot(const char* root, const mount_t* mnt) {
 	static char dest[100];
 	strcpy(dest, root);
@@ -36,26 +36,34 @@ static void mount_chroot(const char* root, const mount_t* mnt) {
 }
 
 int main() {
-	init_console();
-
 	if (getpid() != 1) {
 		PANIC("must run as PID 1\n");
 	}
 
-	int choice_file = open(DEFAULT_CONFIG, O_RDONLY | O_NONBLOCK);
-	if (choice_file == -1) {
+	// initiates the console as it's not initiated if init-system
+	init_console();
+
+	// opens the config file (`fopen` is not working yet)
+	int config_file = open(DEFAULT_CONFIG, O_RDONLY | O_NONBLOCK);
+	if (config_file == -1) {
+		// if it can't be opened, die!
 		PANIC("cannot open %s: %s\n", DEFAULT_CONFIG, strerror(errno));
 	}
 
-	parse_error_t parse_code = config_parse(choice_file, DEFAULT_CONFIG);
+	// parse the config
+	parse_error_t parse_code = config_parse(config_file, DEFAULT_CONFIG);
 	if (parse_code != 0) {
+		// if config can't be parse, die! (again lol)
 		PANIC("invalid config");
 	}
-	close(choice_file);
+	// and close the file as it's not needed anymore
+	close(config_file);
 
 	int section_index;
 	while (1) {
+		// politely asking for which init you want to load
 		printf("which init do you want to start?\n");
+		// listing the sections
 		for (int i = 0; i < section_size; i++) {
 			printf("[%d] %s at %s\n", i, sections[i].name, sections[i].root);
 		}
@@ -67,12 +75,14 @@ int main() {
 		if (section_index >= 0 && section_index < section_size)
 			break;
 
+		// mmph, you didn't enter a valid number
 		WARN("your choice %d must be lower than %d\n\n", section_index, section_size);
 	}
 
 	section_t* section = &sections[section_index];
 	bool	   is_root = strcmp(section->root, "/") == 0;
 
+	// if the section is not `/` (as it should be), mount everything
 	if (!is_root) {
 		mount_t self_mount = {
 			.type	 = NULL,
@@ -95,6 +105,7 @@ int main() {
 	}
 
 	if (!is_root) {
+		// if it's not '/', chroot into it
 		INFO("chrooting into %s\n", section->root);
 
 		if (chroot(section->root) == -1) {
@@ -102,10 +113,12 @@ int main() {
 		}
 	}
 
+	// chdir '/', otherwise the init-system will have funny errors
 	if (chdir("/") == -1) {
 		PANIC("error: cannot chdir into '/': %s\n", strerror(errno));
 	}
 
+	// aaand finally entering `init`
 	char init[PATH_MAX] = DEFAULT_INIT;
 	if (section->init != NULL)
 		strcpy(init, section->init);

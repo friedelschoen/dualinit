@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+// open /dev/console and pipe it stdout/stdin/stderr
 void init_console() {
 	int in	= open("/dev/console", O_RDONLY, 0);
 	int out = open("/dev/console", O_RDWR, 0);

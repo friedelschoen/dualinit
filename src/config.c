@@ -79,8 +79,10 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 	char*		  line			  = NULL;
 	char		  columns[10][100];
 
+	// `getline` fetches one line from `file`
 	while ((len = getline(&line_origin, &alloc, file)) > 0) {
 		linenr++;
+		// as `getline` doesn't add a terminating `\0`, concatinate it
 		if (len + 1 > (ssize_t) alloc) {
 			line = realloc(line_origin, alloc = len + 1);
 			if (line == NULL) {
@@ -96,6 +98,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 
 		last_blank = -1;
 
+		// some truncating
 		while (isblank(line[0]))
 			line++, len--;
 
@@ -111,9 +114,11 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			}
 		}
 
+		// if it's an empty string, skip it
 		if (len == 0)
 			continue;
 
+		// parse colums (aka. split by string)
 		columns_size	  = 0;
 		int	 column_index = 0;
 		bool string		  = false;
@@ -135,6 +140,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			}
 		}
 
+		// end
 		if (streq(columns[0], "end")) {
 			CHECK_PARAMS_EQUALS(1);
 
@@ -146,6 +152,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 				result = P_SCOPE;
 				goto error;
 			}
+			// <fstype> <source> <target> [options]
 		} else if (in_mount) {
 			CHECK_PARAMS_BETWEEN(3, 4);
 
@@ -163,10 +170,12 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 				mnt->flags	 = 0;
 				mnt->options = NULL;
 			}
+			// mount
 		} else if (streq(columns[0], "mount")) {
 			CHECK_PARAMS_EQUALS(1);
 
 			in_mount = true;
+			// section
 		} else if (streq(columns[0], "section")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(3);
@@ -181,6 +190,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			current_section->mount_size = 0;
 			current_section->name		= strdupn(columns[1]);
 			current_section->root		= strdupn(columns[2]);
+			// rshare/share <dirs...>
 		} else if (streq(columns[0], "rshare") || streq(columns[0], "share")) {
 			CHECK_PARAMS_MORE(2);
 
@@ -202,16 +212,19 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 				if (columns[0][0] == 'r')	 // aka. equals rshare
 					mnt->flags |= MS_REC;
 			}
+			// color <enable>
 		} else if (streq(columns[0], "color")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
 			PARSE_BOOL(color);
+			// verbose <enable>
 		} else if (streq(columns[0], "verbose")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
 
 			PARSE_BOOL(verbose);
+			// timeout <seconds>
 		} else if (streq(columns[0], "timeout")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
@@ -222,6 +235,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 				result = P_DATA;
 				goto error;
 			}
+			// init <path>
 		} else if (streq(columns[0], "init")) {
 			CHECK_SECTION;
 			CHECK_PARAMS_MORE(2);
@@ -232,6 +246,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			}
 
 			current_section->init = strdupn(columns[1]);
+			// include <file>
 		} else if (streq(columns[0], "include")) {
 			CHECK_ROOT;
 			CHECK_PARAMS_EQUALS(2);
@@ -241,12 +256,14 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 			close(fd);
 			if (result != 0)
 				goto cleanup;
+			// mmpf, unknown command
 		} else {
 			result = P_IDENTIFIER;
 			goto error;
 		}
 	}
 
+	// if there were no sections, raise an error as that not the intension
 	if (section_size == 0) {
 		result = P_SECTION;
 		goto error;
@@ -257,6 +274,7 @@ parse_error_t config_parsef(FILE* file, const char* filename) {
 	goto cleanup;
 
 error:
+	// pretty-print error
 	printf("error in %s:%d: ", filename, linenr);
 	switch (result) {
 		case P_ALLOC:
@@ -328,32 +346,3 @@ void config_reset() {
 	verbose		 = true;
 	timeout		 = 10;
 }
-
-
-#if 0
-int main() {
-	int fd = open("chinit.conf", O_RDONLY | O_NONBLOCK);
-
-	parse_code_t code = parse_config(fd, "chinit.conf");
-
-	close(fd);
-
-	if (code != P_SUCCESS)
-		return 1;
-
-
-	for (int j = 0; j < mount_size; j++) {
-		printf("- %s%s -> %s [%s] (%s)\n", mounts[j].try ? "try " : "", mounts[j].source, mounts[j].target, mounts[j].type, mounts[j].options);
-	}
-	for (int i = 0; i < section_size; i++) {
-		if (sections[i].name[0] != '\0') {
-			printf("%s at %s (%s)\n", sections[i].name, sections[i].root, sections[i].init);
-			if (&sections[i] == master)
-				printf(" *");
-		}
-		for (int j = 0; j < sections[i].mount_size; j++) {
-			printf("- %s%s -> %s [%s] (%s)\n", sections[i].mounts[j].try ? "try " : "", sections[i].mounts[j].source, sections[i].mounts[j].target, sections[i].mounts[j].type, sections[i].mounts[j].options);
-		}
-	}
-}
-#endif

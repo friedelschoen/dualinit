@@ -5,7 +5,7 @@
 #include <sys/mount.h>
 
 
-const struct mount_option mount_options[] = {
+const mount_option_t mount_options[] = {
 	{ "ro", MS_RDONLY, false },		/* read-only */
 	{ "rw", MS_RDONLY, true },		/* read-write */
 	{ "exec", MS_NOEXEC, true },	/* permit execution of binaries */
