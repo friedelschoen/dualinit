@@ -1,10 +1,8 @@
-# DUAL-INIT
+# Configuration Reference
 
-## Config Commands
+## Controlling
 
-### Controlling
-
-#### `include <path>`
+### `include <path>`
 
 > includes an file
 
@@ -14,13 +12,13 @@
 
 ---
 
-#### `end`
+### `end`
 
 > ends a section
 
-### General Configuration
+## General Configuration
 
-#### `section <name> <root>`
+### `section <name> <root>`
 
 > starts the definition of a section (has to be closed with `end`)
 
@@ -31,13 +29,25 @@
 
 ---
 
-#### `mount`
+### `mount`
 
 > starts a mount-section which has to be closed with `end`
 
 ---
 
-#### `mount-default <enable>`
+### `share/rshare <dirs...>`
+
+> shares dictionaries `dirs` (recursive if `rshare`)
+>
+> alias for mount `- <dir> <dir> bind/rbind`
+
+| parameter | description               |
+| --------- | ------------------------- |
+| dirs      | dictionaries to be shared |
+
+---
+
+### `color <enable>`
 
 > defines if color should be enabled
 
@@ -47,27 +57,7 @@
 
 ---
 
-#### `mount-master <enable>`
-
-> defines if color should be enabled
-
-| parameter                | description                |
-| ------------------------ | -------------------------- |
-| enable (`true`\|`false`) | if color-output is enabled |
-
----
-
-#### `color <enable>`
-
-> defines if color should be enabled
-
-| parameter                | description                |
-| ------------------------ | -------------------------- |
-| enable (`true`\|`false`) | if color-output is enabled |
-
----
-
-#### `verbose <enable>`
+### `verbose <enable>`
 
 > defines if color should be enabled
 
@@ -77,7 +67,7 @@
 
 ---
 
-#### `timeout <duration>`
+### `timeout <duration>`
 
 > set timeout to duration
 
@@ -85,27 +75,27 @@
 | --------- | ------------------ |
 | duration  | timeout in seconds |
 
-### Section Configuration
+## Section Configuration
 
-#### `mount`
+### `mount`
 
 > starts a mount-section which has to be closed with `end`
 
 ---
 
-#### `master`
+### `share/rshare <dirs...>`
 
-> defines this section as master
+> shares dictionaries `dirs` (recursive if `rshare`)
+>
+> alias for mount `- <dir> <dir> bind/rbind`
+
+| parameter | description               |
+| --------- | ------------------------- |
+| dirs      | dictionaries to be shared |
 
 ---
 
-#### `default`
-
-> defines this section as default
-
----
-
-#### `init <path> [args...]`
+### `init <path> [args...]`
 
 > defines the init with possible args (defaults to `/sbin/init`)
 
@@ -114,9 +104,9 @@
 | path      | path to init                         |
 | args      | arguments you want to pass to `init` |
 
-### Mount Configuration
+## Mount Configuration
 
-#### `<type> <source> <target> [options]`
+### `<type> <source> <target> [options]`
 
 > defines a new mount-point
 
