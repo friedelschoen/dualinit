@@ -23,8 +23,8 @@ const mount_option_t mount_options[] = {
 	{ "bind", MS_BIND, false },			  /* Remount part of the tree elsewhere */
 	{ "rbind", MS_BIND | MS_REC, false }, /* Idem, plus mounted subtrees */
 #ifdef MS_NOSUB
-	{ "sub", MS_NOSUB, MNT_INVERT }, /* allow submounts */
-	{ "nosub", MS_NOSUB },			 /* don't allow submounts */
+	{ "sub", MS_NOSUB, true },	  /* allow submounts */
+	{ "nosub", MS_NOSUB, false }, /* don't allow submounts */
 #endif
 #ifdef MS_SILENT
 	{ "silent", MS_SILENT, false }, /* be quiet  */

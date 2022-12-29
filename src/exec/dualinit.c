@@ -18,19 +18,20 @@ static void mount_chroot(const char* root, const mount_t* mnt) {
 	strcpy(dest, root);
 	strcat(dest, mnt->target);
 
-	INFO("mounting %s -> %s", mnt->source, dest);
-	if (mnt->type != NULL)
-		printf(" (%s)", mnt->type);
-	if (mnt->options != NULL)
-		printf(" [%s]", mnt->options);
-
-	printf("\n");
+	if (verbose) {
+		VERBOSE("mounting %s -> %s", mnt->source, dest);
+		if (mnt->type != NULL)
+			printf(" (%s)", mnt->type);
+		if (mnt->options != NULL)
+			printf(" [%s]", mnt->options);
+		printf("\n");
+	}
 
 	if (mount(mnt->source, dest, mnt->type, mnt->flags, mnt->options) != 0) {
 		if (mnt->try) {
-			WARN("mounting %s to %s failed: %s\n", mnt->source, dest, strerror(errno));
+			WARN_E("mounting %s to %s failed: %s\n", mnt->source, dest);
 		} else {
-			PANIC("mounting %s to %s failed: %s\n", mnt->source, dest, strerror(errno));
+			PANIC_E("mounting %s to %s failed: %s\n", mnt->source, dest);
 		}
 	}
 }
@@ -47,7 +48,7 @@ int main() {
 	int config_file = open(DEFAULT_CONFIG, O_RDONLY | O_NONBLOCK);
 	if (config_file == -1) {
 		// if it can't be opened, die!
-		PANIC("cannot open %s: %s\n", DEFAULT_CONFIG, strerror(errno));
+		PANIC_E("cannot open %s: %s\n", DEFAULT_CONFIG);
 	}
 
 	// parse the config
@@ -58,6 +59,8 @@ int main() {
 	}
 	// and close the file as it's not needed anymore
 	close(config_file);
+
+	VERBOSE("config loaded\n");
 
 	int section_index;
 	while (1) {
@@ -79,6 +82,8 @@ int main() {
 		WARN("your choice %d must be lower than %d\n\n", section_index, section_size);
 	}
 
+	VERBOSE("loading section and check root\n");
+
 	section_t* section = &sections[section_index];
 	bool	   is_root = strcmp(section->root, "/") == 0;
 
@@ -93,6 +98,7 @@ int main() {
 			.try	 = false,
 		};
 
+		VERBOSE("mount dictionary %s as bind to itself\n", section->root);
 		mount_chroot(section->root, &self_mount);
 
 		for (int i = 0; i < mount_size; i++) {
@@ -109,13 +115,14 @@ int main() {
 		INFO("chrooting into %s\n", section->root);
 
 		if (chroot(section->root) == -1) {
-			PANIC("cannot chroot into %s: %s\n", section->root, strerror(errno));
+			PANIC_E("cannot chroot into %s: %s\n", section->root);
 		}
 	}
 
+	VERBOSE("chdir / to avoid unknown getdir\n");
 	// chdir '/', otherwise the init-system will have funny errors
 	if (chdir("/") == -1) {
-		PANIC("error: cannot chdir into '/': %s\n", strerror(errno));
+		PANIC_E("error: cannot chdir into '/': %s\n");
 	}
 
 	// aaand finally entering `init`
@@ -123,11 +130,12 @@ int main() {
 	if (section->init != NULL)
 		strcpy(init, section->init);
 
+	VERBOSE("cleanup config\n");
 	config_cleanup();
 
 	INFO("entering %s\n\n", init);
 
 	execlp(section->init, section->init, NULL);
 
-	PANIC("error: cannot execute %s: %s\n", section->init, strerror(errno));
+	PANIC_E("error: cannot execute %s: %s\n", section->init);
 }
